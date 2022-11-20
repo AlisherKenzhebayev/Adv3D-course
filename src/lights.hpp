@@ -145,6 +145,10 @@ public:
         return { samplePoint, mBackgroundColor, 1.f / Area};
     }
 
+    virtual Vec3f Evaluate(const Vec3f& direction) const override {
+        return mBackgroundColor;
+    }
+
 public:
 
     Vec3f mBackgroundColor;

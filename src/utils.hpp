@@ -54,7 +54,7 @@ Vec3f PointOnTriangle(Vec3f p0, Vec3f e1, Vec3f e2, Rng& rng) {
     Vec3f C = p0 + e2;
 
     float su0 = sqrt(u);
-    return (1 - su0) * B + (v * su0) * C + (1-v) * su0 * p0;
+    return (1 - su0) * B + (v * su0) * C + (1 - v) * su0 * p0;
 }
 
 Vec3f PointOnSphere(float radius, Rng& rng) {
@@ -64,4 +64,13 @@ Vec3f PointOnSphere(float radius, Rng& rng) {
     float r = sqrt(std::max(0.f, 1.f - z * z));
     float phi = 2 * PI_F * uv.y;
     return radius * Vec3f(r * cos(phi), r * sin(phi), z);
+}
+
+Vec3f PointOnHemisphere(float radius, Rng& rng) {
+    float u = rng.GetFloat();
+    float v = rng.GetFloat();
+
+    float r = sqrt(std::max(0.f, 1.f - u * u));
+    float phi = 2 * PI_F * v;
+    return radius * Vec3f(r * cos(phi), r * sin(phi), u);
 }

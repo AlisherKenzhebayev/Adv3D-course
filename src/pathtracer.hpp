@@ -46,16 +46,43 @@ public:
 
                 Vec3f LoDirect = Vec3f(0);
                 Vec3f LoEmitted = Vec3f(0);
+
 				const Material& mat = mScene.GetMaterial(intersection->materialID);
                 // Direct intersection with the light source
                 const int lightId = intersection->lightID;
-                // Direct light source intersection
                 if (lightId >= 0) {
                     LoEmitted += mScene.GetLightPtr(lightId)->Evaluate(incomingDirection);
                 }
-
+                   
+                // Sample reflected direction, single bounce
+                {
+                    // Both directions are pointed outwards and in local coordinates
+                    auto [outgoingDirectionLocal, reflectedIntensity, pdf] = mat.SampleReflectedDirection(incomingDirection, mRandomGenerator);
+                    Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
+                    float cosTheta = Dot(frame.mZ, outgoingDirection);
+                    // Cast a ray in the sampled direction
+                    Vec3f intensity = Vec3f(0.f);
+                    Ray raySample(surfacePoint, outgoingDirection, EPSILON_RAY);
+                    if (!mScene.FindAnyIntersection(raySample)) {
+                        // No ray-object intersection occurs, try evaluating the background light
+                        if (mScene.GetBackground()) {
+                            intensity = mScene.GetBackground()->Evaluate(outgoingDirection);
+                        }
+                    }
+                    else {
+                        int intersectedLightId = mScene.FindClosestIntersection(raySample)->lightID;
+                        if (intersectedLightId < 0) {
+                            // Intersected something else, ignore for now?
+                        }
+                        else {
+                            intensity = mScene.GetLightPtr(intersectedLightId)->Evaluate(outgoingDirection);
+                        }
+                    }
+                    LoDirect += intensity * mat.EvaluateBRDF(Normalize(outgoingDirectionLocal), incomingDirection) * cosTheta / pdf;
+                }
+                
                 // Connect from the current surface point to every light source in the scene:
-                for (int i = 0; i < mScene.GetLightCount(); i++)
+                /*for (int i = 0; i < mScene.GetLightCount(); i++)
                 {
                     const AbstractLight* light = mScene.GetLightPtr(i);
                     assert(light != 0);
@@ -72,8 +99,8 @@ public:
                             LoDirect += intensity * mat.EvaluateBRDF(frame.ToLocal(outgoingDirection), incomingDirection) * cosTheta / pdf;
                         }
                     }
-                }
-				mFramebuffer.AddColor(sample, LoDirect + LoEmitted);
+                }*/
+				mFramebuffer.AddColor(sample, LoEmitted + LoDirect);
             }
         }
 
