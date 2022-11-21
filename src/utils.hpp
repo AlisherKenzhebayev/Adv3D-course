@@ -74,3 +74,12 @@ Vec3f PointOnHemisphere(float radius, Rng& rng) {
     float phi = 2 * PI_F * v;
     return radius * Vec3f(r * cos(phi), r * sin(phi), u);
 }
+
+Vec3f PointOnHemisphereCosineWeighted(float radius, Rng& rng) {
+    float u = rng.GetFloat();
+    float v = rng.GetFloat();
+
+    float r = sqrt(std::max(0.f, 1.f - u));
+    float phi = 2 * PI_F * v;
+    return radius * Vec3f(r * cos(phi), r * sin(phi), sqrt(u));
+}

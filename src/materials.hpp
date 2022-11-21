@@ -33,8 +33,8 @@ public:
      *  - the probability density (PDF) of choosing this direction
      */
     std::tuple<Vec3f, Vec3f, float> SampleReflectedDirection(const Vec3f& incomingDirection, Rng& rng) const {
-        Vec3f sampledDirection = PointOnHemisphere(1.0f, rng);
-        float Pdf = 1.f / (2 * PI_F);
+        Vec3f sampledDirection = PointOnHemisphereCosineWeighted(1.0f, rng);
+        float Pdf = sampledDirection.z / PI_F;
         Vec3f intensityReflected = Vec3f(0.f);
 
         return { sampledDirection, intensityReflected, Pdf };

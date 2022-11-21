@@ -81,6 +81,7 @@ public:
                     LoDirect += intensity * mat.EvaluateBRDF(Normalize(outgoingDirectionLocal), incomingDirection) * cosTheta / pdf;
                 }
                 
+                /// ---------- Sampling the light sources directly
                 // Connect from the current surface point to every light source in the scene:
                 /*for (int i = 0; i < mScene.GetLightCount(); i++)
                 {
