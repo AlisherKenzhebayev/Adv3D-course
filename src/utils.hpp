@@ -45,9 +45,21 @@ float PdfAtoW(
 }
 
 /// <summary>
+/// Returns an ideal reflection vector, given the incident direction and a surface normal 
+/// </summary>
+/// <param name="incomingDirection"> - a normalized direction towards the previous (origin) point in the scene</param>
+/// <param name="N"> - Surface normal </param>
+/// <returns> Normalized ideal reflection </returns>
+Vec3f IdealReflection(Vec3f incomingDirection, Vec3f N)
+{
+    return Normalize(2 * Dot(N, incomingDirection) * N - incomingDirection);
+}
+
+/// <summary>
 /// Given the triangle and rng, return a random point on that triangle
 /// </summary>
-Vec3f PointOnTriangle(Vec3f p0, Vec3f e1, Vec3f e2, Rng& rng) {
+Vec3f PointOnTriangle(Vec3f p0, Vec3f e1, Vec3f e2, Rng& rng) 
+{
     float u = rng.GetFloat();
     float v = rng.GetFloat();
     Vec3f B = p0 + e1;
@@ -75,11 +87,39 @@ Vec3f PointOnHemisphere(float radius, Rng& rng) {
     return radius * Vec3f(r * cos(phi), r * sin(phi), u);
 }
 
-Vec3f PointOnHemisphereCosineWeighted(float radius, Rng& rng) {
+Vec3f PointOnHemisphereCosWeightedSolid(float radius, Rng& rng) {
     float u = rng.GetFloat();
     float v = rng.GetFloat();
 
     float r = sqrt(std::max(0.f, 1.f - u));
     float phi = 2 * PI_F * v;
     return radius * Vec3f(r * cos(phi), r * sin(phi), sqrt(u));
+}
+
+Vec3f PointOnHemisphereCosLobeNormalPow(float radius, Rng& rng, float exp) {
+    float u = rng.GetFloat();
+    float v = rng.GetFloat();
+
+    float p = 2.f / (exp + 1);
+    float r = sqrt(std::max(0.f, 1.f - (float)pow(u, p)));
+    float phi = 2 * PI_F * v;
+    return radius * Vec3f(r * cos(phi), r * sin(phi), pow(u, p / 2.f));
+} 
+
+float getDiffusePdf(Vec3f sampledDirection)
+{
+    return Normalize(sampledDirection).z / PI_F;
+}
+
+float getSpecularPdf(Vec3f incomingDirection, Vec3f sampledDirection, float exp)
+{
+    Vec3f N = Vec3f(0.0f, 0.0f, 1.0f);
+    Vec3f R = IdealReflection(incomingDirection, N);
+    // Set the coordinate frame to a reflection vector.
+    CoordinateFrame frame;
+    frame.SetFromZ(R);
+    // Convert back to a coordinate frame of a specular lobe
+    Vec3f directionSpec = frame.ToLocal(sampledDirection);
+
+    return (pow(Normalize(directionSpec).z, exp) * 0.5f * (exp + 1)) / PI_F;
 }

@@ -52,6 +52,11 @@ public:
                 const int lightId = intersection->lightID;
                 if (lightId >= 0) {
                     LoEmitted += mScene.GetLightPtr(lightId)->Evaluate(incomingDirection);
+                    mFramebuffer.AddColor(sample, LoEmitted + LoDirect);
+                    
+                    // This turns out to be important to cull these ray samples. 
+                    // Figured this out when testing for BRDF-importance sampling??
+                    continue;
                 }
                    
                 // Sample reflected direction, single bounce
@@ -101,6 +106,9 @@ public:
                         }
                     }
                 }*/
+
+                //printf("%d %d %d", LoDirect.x, LoDirect.y, LoDirect.z);
+
 				mFramebuffer.AddColor(sample, LoEmitted + LoDirect);
             }
         }

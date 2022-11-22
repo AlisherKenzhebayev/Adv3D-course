@@ -33,11 +33,67 @@ public:
      *  - the probability density (PDF) of choosing this direction
      */
     std::tuple<Vec3f, Vec3f, float> SampleReflectedDirection(const Vec3f& incomingDirection, Rng& rng) const {
-        Vec3f sampledDirection = PointOnHemisphereCosineWeighted(1.0f, rng);
-        float Pdf = sampledDirection.z / PI_F;
+        // Probe randomly for a direction, based on specularity and diffusedness
+        float pDiffuse = std::max({ mDiffuseReflectance.x, mDiffuseReflectance.y, mDiffuseReflectance.z });
+        float pSpecular = std::max({ mPhongReflectance.x, mPhongReflectance.y, mPhongReflectance.z });
+        float normalization = 1.f / (pDiffuse + pSpecular);
+        pDiffuse *= normalization;
+        pSpecular *= normalization;
+
+        // Generate a random direction, based on the random roll 
+        float rNum = rng.GetFloat();
+        Vec3f directionLocal = Vec3f(0.f);
+        if (rNum <= pDiffuse)
+        {
+            // Do a diffuse, recalculate for specular 
+            directionLocal = SampleDiffuseDirection(incomingDirection, rng);
+        }
+        else 
+        {
+            directionLocal = SampleSpecularDirection(incomingDirection, rng);
+        }
+
+        //Vec3f sampledDirection = PointOnHemisphereCosWeightedSolid(1.0f, rng);
+        float Pdf = pDiffuse * getDiffusePdf(directionLocal) +
+            pSpecular * getSpecularPdf(incomingDirection, directionLocal, mPhongExponent);
         Vec3f intensityReflected = Vec3f(0.f);
 
-        return { sampledDirection, intensityReflected, Pdf };
+        return { directionLocal, intensityReflected, Pdf };
+    }
+
+    /**
+     * Randomly chooses an outgoing direction based on cosine-weighted sampling
+     * Arguments:
+     *  - incomingDirection = a normalized direction towards the previous (origin) point in the scene
+     *  - rng = random generator
+     * Returns:
+     *  - a randomly sampled reflected outgoing direction
+     */
+    Vec3f SampleDiffuseDirection(const Vec3f& incomingDirection, Rng& rng) const {
+        Vec3f sampledDirection = PointOnHemisphereCosWeightedSolid(1.0f, rng);
+
+        return sampledDirection;
+    }
+
+    /**
+     * Randomly chooses an outgoing direction based on specular lobe + hemisphere sampling
+     * Arguments:
+     *  - incomingDirection = a normalized direction towards the previous (origin) point in the scene
+     *  - rng = random generator
+     * Returns:
+     *  - a randomly sampled reflected outgoing direction (local space)
+     */
+    Vec3f SampleSpecularDirection(const Vec3f& incomingDirection, Rng& rng) const {
+        // Get an ideal reflection vector
+        Vec3f N = Vec3f(0.0f, 0.0f, 1.0f);
+        Vec3f R = IdealReflection(incomingDirection, N);
+        // Set the coordinate frame to a reflection vector.
+        CoordinateFrame frame;
+        frame.SetFromZ(R);
+
+        Vec3f sampledDirection = PointOnHemisphereCosLobeNormalPow(1.0f, rng, mPhongExponent);
+
+        return frame.ToWorld(sampledDirection);
     }
 
     /**
@@ -69,7 +125,7 @@ public:
 		Vec3f diffuseComponent = mDiffuseReflectance / PI_F;
 
         Vec3f N = Vec3f(0.0f, 0.0f, 1.0f);
-        Vec3f R = Normalize(2 * Dot(N, incomingDirection) * N - incomingDirection);
+        Vec3f R = IdealReflection(incomingDirection, N);
         float dotPow = pow(Dot(outgoingDirection, R), mPhongExponent);
         Vec3f glossyComponent = mPhongReflectance * dotPow * (mPhongExponent + 2) / (2 * PI_F);
 
