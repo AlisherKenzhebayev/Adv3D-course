@@ -108,6 +108,7 @@ Vec3f PointOnHemisphereCosLobeNormalPow(float radius, Rng& rng, float exp) {
 
 float getDiffusePdf(Vec3f sampledDirection)
 {
+    // TODO: negative check?
     return Normalize(sampledDirection).z / PI_F;
 }
 
