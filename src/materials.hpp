@@ -28,9 +28,9 @@ public:
      *  - incomingDirection = a normalized direction towards the previous (origin) point in the scene
      *  - rng = random generator
      * Returns:
-     *  - a randomly sampled reflected outgoing direction
-     *  - the intensity corresponding to the reflected light
-     *  - the probability density (PDF) of choosing this direction
+     *  - a randomly sampled reflected outgoing direction (local) 
+     *  - the intensity corresponding to the reflected light        * UNUSED
+     *  - the probability density (PDF) of choosing this direction  * UNUSED
      */
     std::tuple<Vec3f, Vec3f, float> SampleReflectedDirection(const Vec3f& incomingDirection, Rng& rng) const {
         // Probe randomly for a direction, based on specularity and diffusedness
@@ -54,8 +54,8 @@ public:
         }
 
         //Vec3f sampledDirection = PointOnHemisphereCosWeightedSolid(1.0f, rng);
-        float Pdf = pDiffuse * getDiffusePdf(directionLocal) +
-            pSpecular * getSpecularPdf(incomingDirection, directionLocal, mPhongExponent);
+
+        float Pdf = 0.f;//pDiffuse * getDiffusePdf(directionLocal) + pSpecular * getSpecularPdf(incomingDirection, directionLocal, mPhongExponent);
         Vec3f intensityReflected = Vec3f(0.f);
 
         return { directionLocal, intensityReflected, Pdf };
@@ -104,7 +104,13 @@ public:
      *  - outgoingDirection = the randomly sampled (normalized) outgoing direction
      */
     float PDF(const Vec3f& incomingDirection, const Vec3f& outgoingDirection) const {
-        throw std::logic_error("Not implemented");
+        float pDiffuse = std::max({ mDiffuseReflectance.x, mDiffuseReflectance.y, mDiffuseReflectance.z });
+        float pSpecular = std::max({ mPhongReflectance.x, mPhongReflectance.y, mPhongReflectance.z });
+        float normalization = 1.f / (pDiffuse + pSpecular);
+        pDiffuse *= normalization;
+        pSpecular *= normalization;
+            
+        return pDiffuse * getDiffusePdf(outgoingDirection) + pSpecular * getSpecularPdf(incomingDirection, outgoingDirection, mPhongExponent);
     }
 
     /**

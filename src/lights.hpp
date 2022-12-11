@@ -99,7 +99,7 @@ public:
 class PointLight : public AbstractLight
 {
 public:
-
+    
     PointLight(const Vec3f& aPosition)
     {
         mPosition = aPosition;

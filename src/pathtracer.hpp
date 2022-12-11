@@ -62,7 +62,8 @@ public:
                 // Sample reflected direction, single bounce
                 {
                     // Both directions are pointed outwards and in local coordinates
-                    auto [outgoingDirectionLocal, reflectedIntensity, pdf] = mat.SampleReflectedDirection(incomingDirection, mRandomGenerator);
+                    auto [outgoingDirectionLocal, reflectedIntensity, _] = mat.SampleReflectedDirection(incomingDirection, mRandomGenerator);
+                    auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
                     Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
                     float cosTheta = Dot(frame.mZ, outgoingDirection);
                     // Cast a ray in the sampled direction
@@ -80,6 +81,7 @@ public:
                             // Intersected something else, ignore for now?
                         }
                         else {
+                            // Ray bounce intersected the light, we add the contribution of Lo_ from that light source
                             intensity = mScene.GetLightPtr(intersectedLightId)->Evaluate(outgoingDirection);
                         }
                     }
