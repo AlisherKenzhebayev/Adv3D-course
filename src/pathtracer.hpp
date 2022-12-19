@@ -127,6 +127,12 @@ public:
                         if (!mScene.FindAnyIntersection(rayToLight, lightDistance)) { // Testing if the direction towards the light source is not occluded
                             pdfOther = mat.PDF(incomingDirection, frame.ToLocal(outgoingDirection));
                             weightFactorMIS = pdf / (pdf + pdfOther);
+
+                            // Exception case, point light pdf 100%
+                            if (pdf == 1.f) {
+                                weightFactorMIS = 1.f;
+                            }
+
                             LoDirect += weightFactorMIS * intensity * mat.EvaluateBRDF(frame.ToLocal(outgoingDirection), incomingDirection) * cosTheta / pdf;
                         }
                     }
