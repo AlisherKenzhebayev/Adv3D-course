@@ -78,10 +78,10 @@ public:
         float cos = (Dot(Normalize(Cross(e2, e1)), Normalize(outgoingDirection)));
 
         if(cos >= 0){
-            return { samplePoint, mRadiance * cos / distanceSquared , mInvArea };
+            return { samplePoint, mRadiance, (mInvArea * distanceSquared) / cos };
         }
         else {
-            return { samplePoint, 0.f , mInvArea };  
+            return { samplePoint, 0.f , (mInvArea * distanceSquared) / cos };  
         }
     }
 

@@ -73,7 +73,7 @@ public:
 
                     // Cast a ray in the sampled direction
                     Vec3f intensity = Vec3f(0.f);
-                    float weightFactorMIS = 1.f;
+                    float weightFactorMIS = 0.f;
                     auto pdfOther = 0.f;
                     Ray raySample(surfacePoint, outgoingDirection, EPSILON_RAY);
                     if (!mScene.FindAnyIntersection(raySample))
@@ -113,7 +113,7 @@ public:
                     const AbstractLight* light = mScene.GetLightPtr(i);
                     assert(light != 0);
 
-                    float weightFactorMIS = 1.f;
+                    float weightFactorMIS = 0.f;
                     auto pdfOther = 0.f;
 
                     auto [lightPoint, intensity, pdf] = light->SamplePointOnLight(surfacePoint, mRandomGenerator);
