@@ -123,3 +123,7 @@ float getSpecularPdf(Vec3f incomingDirection, Vec3f sampledDirection, float exp)
 
     return (pow(Normalize(directionSpec).z, exp) * 0.5f * (exp + 1)) / PI_F;
 }
+
+float maxComponent(Vec3f v) {
+    return std::max({ v.x, v.y, v.z });
+}
