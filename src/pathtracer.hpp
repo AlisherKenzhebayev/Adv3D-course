@@ -7,7 +7,7 @@
 * 3. Form it into a primitive path tracer first, to test out how it works
 */
 
-#define MAX_BOUNCE 5
+#define MAX_BOUNCE 1
 
 #include <vector>
 #include <cmath>
@@ -32,8 +32,9 @@ public:
         Vec3f accumulation = Vec3f(0);
         Vec3f throughput = Vec3f(1);
 
-        while(1)
-        {
+		//for (int i = 0; i < MAX_BOUNCE; i++)
+		while(1)
+		{
             Vec3f origin = ray.origin;
             Vec3f direction = ray.direction;
 
@@ -42,7 +43,7 @@ public:
             if (!intersection)
             {
 				// Sample the environment map if no scene intersection
-				Vec3f backgroundLe = Vec3f(0.3);
+				Vec3f backgroundLe = Vec3f(0);
 				if (mScene.GetBackground()) {
 					backgroundLe = mScene.GetBackground()->Evaluate(-ray.direction);
 				}
@@ -62,6 +63,7 @@ public:
 			{
 				Vec3f LoEmitted = mScene.GetLightPtr(lightId)->Evaluate(incomingDirection);
 				accumulation += throughput * LoEmitted;
+				return accumulation;
 				// TODO: Difference is that we don't stop the method, unless the survival rate deis off 
 			}
 
