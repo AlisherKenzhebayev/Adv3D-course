@@ -77,47 +77,47 @@ public:
             {
                 // Memo: Both directions are pointed outwards and in local coordinates
                 auto [outgoingDirectionLocal, reflectedIntensity, _] = mat.SampleReflectedDirection(incomingDirection, mRandomGenerator);
-                //auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
-                //Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
-                //float cosTheta = Dot(frame.mZ, outgoingDirection);
+                auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
+                Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
+                float cosTheta = Dot(frame.mZ, outgoingDirection);
 
                 pathBounceDirLocal = outgoingDirectionLocal;
 
-                //// Cast a ray in the sampled direction
-                //Vec3f intensity = Vec3f(0.f);
-                //float weightFactorMIS = 0.f;
-                //auto pdfOther = 0.f;
-                //Ray raySample(surfacePoint, outgoingDirection, EPSILON_RAY);
-                //if (!mScene.FindAnyIntersection(raySample))
-                //{
-                //    // No ray-object intersection occurs, try evaluating the background light
-                //    if (mScene.GetBackground()) {
-                //        weightFactorMIS = -1;
-                //        intensity = mScene.GetBackground()->Evaluate(outgoingDirection);
-                //        pdfOther = mScene.GetBackground()->PDF(surfacePoint, Vec3f(0.f));
-                //    }
-                //}
-                //else {
-                //    int intersectedLightId = mScene.FindClosestIntersection(raySample)->lightID;
-                //    if (intersectedLightId < 0) {
-                //        // Intersected something else, ignore for now?
-                //    }
-                //    else {
-                //        // Ray bounce intersected the light, we add the contribution of Lo_ from that light source
-                //        weightFactorMIS = -1;
-                //        intensity = mScene.GetLightPtr(intersectedLightId)->Evaluate(outgoingDirection);
-                //        Vec3f intersectionPoint = mScene.FindClosestIntersection(raySample)->distance * outgoingDirection + surfacePoint;
-                //        pdfOther = mScene.GetLightPtr(intersectedLightId)->PDF(surfacePoint, intersectionPoint);
-                //    }
-                //}
+                // Cast a ray in the sampled direction
+                Vec3f intensity = Vec3f(0.f);
+                float weightFactorMIS = 0.f;
+                auto pdfOther = 0.f;
+                Ray raySample(surfacePoint, outgoingDirection, EPSILON_RAY);
+                if (!mScene.FindAnyIntersection(raySample))
+                {
+                    // No ray-object intersection occurs, try evaluating the background light
+                    if (mScene.GetBackground()) {
+                        weightFactorMIS = -1;
+                        intensity = mScene.GetBackground()->Evaluate(outgoingDirection);
+                        pdfOther = mScene.GetBackground()->PDF(surfacePoint, Vec3f(0.f));
+                    }
+                }
+                else {
+                    int intersectedLightId = mScene.FindClosestIntersection(raySample)->lightID;
+                    if (intersectedLightId < 0) {
+                        // Intersected something else, ignore for now?
+                    }
+                    else {
+                        // Ray bounce intersected the light, we add the contribution of Lo_ from that light source
+                        weightFactorMIS = -1;
+                        intensity = mScene.GetLightPtr(intersectedLightId)->Evaluate(outgoingDirection);
+                        Vec3f intersectionPoint = mScene.FindClosestIntersection(raySample)->distance * outgoingDirection + surfacePoint;
+                        pdfOther = mScene.GetLightPtr(intersectedLightId)->PDF(surfacePoint, intersectionPoint);
+                    }
+                }
 
-                //// Calculate the weight factor for MIS, if prompted for re-evaluation
-                //if (weightFactorMIS == -1)
-                //{
-                //    weightFactorMIS = pdf / (pdf + pdfOther);
-                //}
+                // Calculate the weight factor for MIS, if prompted for re-evaluation
+                if (weightFactorMIS == -1)
+                {
+                    weightFactorMIS = pdf / (pdf + pdfOther);
+                }
 
-                //accumulation += throughput * weightFactorMIS * intensity * mat.EvaluateBRDF(Normalize(outgoingDirectionLocal), incomingDirection) * cosTheta / pdf;
+                accumulation += throughput * intensity * mat.EvaluateBRDF(Normalize(outgoingDirectionLocal), incomingDirection) * cosTheta * weightFactorMIS / pdf;
             }
 
             // Sampling the light sources directly (TODO: here nan?)
@@ -142,12 +142,14 @@ public:
                         pdfOther = mat.PDF(incomingDirection, frame.ToLocal(outgoingDirection));
                         weightFactorMIS = pdf / (pdf + pdfOther);
 
+                        //printf("%f %f %f\n", pdf, pdfOther, weightFactorMIS);
+
                         // Exception case, point light pdf 100%
                         if (pdf == 1.f) {
                             weightFactorMIS = 1.f;
                         }
 
-                        accumulation += throughput * weightFactorMIS * intensity * mat.EvaluateBRDF(frame.ToLocal(outgoingDirection), incomingDirection) * cosTheta / pdf;
+                        accumulation += throughput * intensity * mat.EvaluateBRDF(frame.ToLocal(outgoingDirection), incomingDirection) * cosTheta * weightFactorMIS / pdf;
                     }
                 }
             }
