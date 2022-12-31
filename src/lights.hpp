@@ -55,36 +55,47 @@ class AreaLight : public AbstractLight
 public:
 
     AreaLight(
-        const Vec3f &aP0,
-        const Vec3f &aP1,
-        const Vec3f &aP2)
+        const Vec3f& aP0,
+        const Vec3f& aP1,
+        const Vec3f& aP2)
     {
         p0 = aP0;
         e1 = aP1 - aP0;
         e2 = aP2 - aP0;
 
         Vec3f normal = Cross(e1, e2);
-        float len    = normal.Length();
-        mInvArea     = 2.f / len; // Area of the triangle, inversed
+        float len = normal.Length();
+        mInvArea = 2.f / len; // Area of the triangle, inversed
         mFrame.SetFromZ(normal);
     }
 
-    virtual std::tuple<Vec3f, Vec3f, float> SamplePointOnLight(const Vec3f& origin, Rng& rng) const override {
+    virtual std::tuple<Vec3f, Vec3f, float> SamplePointOnLight(const Vec3f& origin, Rng& rng) const override
+    {
         Vec3f samplePoint;
         samplePoint = PointOnTriangle(p0, e1, e2, rng);
         Vec3f outgoingDirection = samplePoint - origin;
         float distanceSquared = outgoingDirection.LenSqr();
         float cos = (Dot(Normalize(Cross(e2, e1)), Normalize(outgoingDirection)));
 
-        if(cos >= 0){
-            return { samplePoint, mRadiance * cos / distanceSquared , mInvArea };
+        if (cos >= 0) {
+            return { samplePoint, mRadiance, (mInvArea * distanceSquared) / cos };
         }
         else {
-            return { samplePoint, 0.f , mInvArea };  
+            return { samplePoint, 0.f , (mInvArea * distanceSquared) / cos };
         }
     }
 
-    virtual Vec3f Evaluate(const Vec3f& direction) const override {
+    virtual float PDF(const Vec3f& origin, const Vec3f& lightPoint) const
+    {
+        Vec3f outgoingDirection = lightPoint - origin;
+        float distanceSquared = outgoingDirection.LenSqr();
+        float cos = (Dot(Normalize(Cross(e2, e1)), Normalize(outgoingDirection)));
+
+        return (mInvArea * distanceSquared) / cos;
+    }
+
+    virtual Vec3f Evaluate(const Vec3f& direction) const override
+    {
         return mRadiance;
     }
 
@@ -99,7 +110,7 @@ public:
 class PointLight : public AbstractLight
 {
 public:
-    
+
     PointLight(const Vec3f& aPosition)
     {
         mPosition = aPosition;
@@ -109,7 +120,13 @@ public:
         Vec3f outgoingDirection = mPosition - origin;
         float distanceSquared = outgoingDirection.LenSqr();
 
-		return {mPosition, mIntensity / distanceSquared, 1.0f};
+        return { mPosition, mIntensity / distanceSquared, 1.0f };
+    }
+
+
+    virtual float PDF(const Vec3f& origin, const Vec3f& lightPoint) const
+    {
+        return 0.f;
     }
 
     virtual Vec3f Evaluate(const Vec3f& direction) const override {
@@ -142,7 +159,14 @@ public:
         double Area = 4 * PI_F;
         float cos = (Dot(Normalize(samplePoint), Normalize(-outgoingDirection)));
 
-        return { samplePoint, mBackgroundColor, 1.f / Area};
+        return { samplePoint, mBackgroundColor, 1.f / Area };
+    }
+
+
+    virtual float PDF(const Vec3f& origin, const Vec3f& lightPoint) const
+    {
+        double Area = 4 * PI_F;
+        return 1.f / Area;
     }
 
     virtual Vec3f Evaluate(const Vec3f& direction) const override {
