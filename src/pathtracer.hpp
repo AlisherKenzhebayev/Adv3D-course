@@ -36,6 +36,9 @@ public:
 		{
             Vec3f origin = ray.origin;
             Vec3f direction = ray.direction;
+            
+            // Path redirection after a bounce (taken from BRDF)
+            Vec3f pathBounceDirectionWorld = Vec3f(0.f);
 
             auto intersection = mScene.FindClosestIntersection(ray);
 
@@ -77,6 +80,8 @@ public:
                 auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
                 Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
                 float cosTheta = Dot(frame.mZ, outgoingDirection);
+
+                pathBounceDirectionWorld = outgoingDirection;
 
                 // Cast a ray in the sampled direction
                 Vec3f intensity = Vec3f(0.f);
@@ -149,11 +154,13 @@ public:
 
 			// Random bounce in the scene (propagating the ray)
 			{
+                // Taking the direction from MIS -> BRDF sampling
 				// Both directions are pointed outwards and in local coordinates
-				auto [outgoingDirectionLocal, reflectedIntensity, _] = mat.SampleReflectedDirection(incomingDirection, mRandomGenerator);
+				//auto [outgoingDirectionLocal, reflectedIntensity, _] = mat.SampleReflectedDirection(incomingDirection, mRandomGenerator);
+				//Vec3f pathBounceDirectionWorld = Normalize(frame.ToWorld(outgoingDirectionLocal));
+                Vec3f outgoingDirectionLocal = frame.ToLocal(pathBounceDirectionWorld);
 				auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
-				Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
-				float cosTheta = Dot(frame.mZ, outgoingDirection);
+				float cosTheta = Dot(frame.mZ, pathBounceDirectionWorld);
 
 				throughput *= mat.EvaluateBRDF(Normalize(outgoingDirectionLocal), incomingDirection) * cosTheta / pdf;
 
@@ -163,7 +170,7 @@ public:
 				if (rNum < survivalProb) 
 				{
 					throughput /= survivalProb;
-					Ray raySample(surfacePoint, outgoingDirection, EPSILON_RAY);
+					Ray raySample(surfacePoint, pathBounceDirectionWorld, EPSILON_RAY);
 					ray = raySample;
 				}
 				else 
