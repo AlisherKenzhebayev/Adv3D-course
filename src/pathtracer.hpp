@@ -38,7 +38,7 @@ public:
             Vec3f direction = ray.direction;
             
             // Path redirection after a bounce (taken from BRDF)
-            Vec3f pathBounceDirectionWorld = Vec3f(0.f);
+            Vec3f pathBounceDirLocal = Vec3f(0);
 
             auto intersection = mScene.FindClosestIntersection(ray);
 
@@ -77,50 +77,50 @@ public:
             {
                 // Memo: Both directions are pointed outwards and in local coordinates
                 auto [outgoingDirectionLocal, reflectedIntensity, _] = mat.SampleReflectedDirection(incomingDirection, mRandomGenerator);
-                auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
-                Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
-                float cosTheta = Dot(frame.mZ, outgoingDirection);
+                //auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
+                //Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
+                //float cosTheta = Dot(frame.mZ, outgoingDirection);
 
-                pathBounceDirectionWorld = outgoingDirection;
+                pathBounceDirLocal = outgoingDirectionLocal;
 
-                // Cast a ray in the sampled direction
-                Vec3f intensity = Vec3f(0.f);
-                float weightFactorMIS = 0.f;
-                auto pdfOther = 0.f;
-                Ray raySample(surfacePoint, outgoingDirection, EPSILON_RAY);
-                if (!mScene.FindAnyIntersection(raySample))
-                {
-                    // No ray-object intersection occurs, try evaluating the background light
-                    if (mScene.GetBackground()) {
-                        weightFactorMIS = -1;
-                        intensity = mScene.GetBackground()->Evaluate(outgoingDirection);
-                        pdfOther = mScene.GetBackground()->PDF(surfacePoint, Vec3f(0.f));
-                    }
-                }
-                else {
-                    int intersectedLightId = mScene.FindClosestIntersection(raySample)->lightID;
-                    if (intersectedLightId < 0) {
-                        // Intersected something else, ignore for now?
-                    }
-                    else {
-                        // Ray bounce intersected the light, we add the contribution of Lo_ from that light source
-                        weightFactorMIS = -1;
-                        intensity = mScene.GetLightPtr(intersectedLightId)->Evaluate(outgoingDirection);
-                        Vec3f intersectionPoint = mScene.FindClosestIntersection(raySample)->distance * outgoingDirection + surfacePoint;
-                        pdfOther = mScene.GetLightPtr(intersectedLightId)->PDF(surfacePoint, intersectionPoint);
-                    }
-                }
+                //// Cast a ray in the sampled direction
+                //Vec3f intensity = Vec3f(0.f);
+                //float weightFactorMIS = 0.f;
+                //auto pdfOther = 0.f;
+                //Ray raySample(surfacePoint, outgoingDirection, EPSILON_RAY);
+                //if (!mScene.FindAnyIntersection(raySample))
+                //{
+                //    // No ray-object intersection occurs, try evaluating the background light
+                //    if (mScene.GetBackground()) {
+                //        weightFactorMIS = -1;
+                //        intensity = mScene.GetBackground()->Evaluate(outgoingDirection);
+                //        pdfOther = mScene.GetBackground()->PDF(surfacePoint, Vec3f(0.f));
+                //    }
+                //}
+                //else {
+                //    int intersectedLightId = mScene.FindClosestIntersection(raySample)->lightID;
+                //    if (intersectedLightId < 0) {
+                //        // Intersected something else, ignore for now?
+                //    }
+                //    else {
+                //        // Ray bounce intersected the light, we add the contribution of Lo_ from that light source
+                //        weightFactorMIS = -1;
+                //        intensity = mScene.GetLightPtr(intersectedLightId)->Evaluate(outgoingDirection);
+                //        Vec3f intersectionPoint = mScene.FindClosestIntersection(raySample)->distance * outgoingDirection + surfacePoint;
+                //        pdfOther = mScene.GetLightPtr(intersectedLightId)->PDF(surfacePoint, intersectionPoint);
+                //    }
+                //}
 
-                // Calculate the weight factor for MIS, if prompted for re-evaluation
-                if (weightFactorMIS == -1)
-                {
-                    weightFactorMIS = pdf / (pdf + pdfOther);
-                }
+                //// Calculate the weight factor for MIS, if prompted for re-evaluation
+                //if (weightFactorMIS == -1)
+                //{
+                //    weightFactorMIS = pdf / (pdf + pdfOther);
+                //}
 
-                accumulation += throughput * weightFactorMIS * intensity * mat.EvaluateBRDF(Normalize(outgoingDirectionLocal), incomingDirection) * cosTheta / pdf;
+                //accumulation += throughput * weightFactorMIS * intensity * mat.EvaluateBRDF(Normalize(outgoingDirectionLocal), incomingDirection) * cosTheta / pdf;
             }
 
-            // Sampling the light sources directly
+            // Sampling the light sources directly (TODO: here nan?)
             // Connect from the current surface point to every light source in the scene:
             for (int i = 0; i < mScene.GetLightCount(); i++)
             {
@@ -155,12 +155,14 @@ public:
 			// Random bounce in the scene (propagating the ray)
 			{
                 // Taking the direction from MIS -> BRDF sampling
+
 				// Both directions are pointed outwards and in local coordinates
 				//auto [outgoingDirectionLocal, reflectedIntensity, _] = mat.SampleReflectedDirection(incomingDirection, mRandomGenerator);
 				//Vec3f pathBounceDirectionWorld = Normalize(frame.ToWorld(outgoingDirectionLocal));
-                Vec3f outgoingDirectionLocal = frame.ToLocal(pathBounceDirectionWorld);
-				auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
-				float cosTheta = Dot(frame.mZ, pathBounceDirectionWorld);
+                Vec3f outgoingDirectionLocal = pathBounceDirLocal;
+                auto pdf = mat.PDF(incomingDirection, outgoingDirectionLocal);
+                Vec3f outgoingDirection = Normalize(frame.ToWorld(outgoingDirectionLocal));
+                float cosTheta = Dot(frame.mZ, outgoingDirection);
 
 				throughput *= mat.EvaluateBRDF(Normalize(outgoingDirectionLocal), incomingDirection) * cosTheta / pdf;
 
@@ -170,7 +172,7 @@ public:
 				if (rNum < survivalProb) 
 				{
 					throughput /= survivalProb;
-					Ray raySample(surfacePoint, pathBounceDirectionWorld, EPSILON_RAY);
+					Ray raySample(surfacePoint, outgoingDirection, EPSILON_RAY);
 					ray = raySample;
 				}
 				else 
