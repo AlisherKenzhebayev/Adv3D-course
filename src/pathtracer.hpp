@@ -46,7 +46,7 @@ public:
 				if (mScene.GetBackground()) {
 					backgroundLe = mScene.GetBackground()->Evaluate(-ray.direction);
 				}
-                return accumulation + throughput * backgroundLe;
+                return accumulation;// The factor is accounted from MIS? +throughput * backgroundLe;
             }
 
 			// Initial ray intersects the scene
