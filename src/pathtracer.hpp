@@ -140,6 +140,11 @@ public:
                     Ray rayToLight(surfacePoint, outgoingDirection, EPSILON_RAY); // Note! To prevent intersecting the same object we are already on, we need to offset the ray by EPSILON_RAY
                     if (!mScene.FindAnyIntersection(rayToLight, lightDistance)) { // Testing if the direction towards the light source is not occluded
                         pdfOther = mat.PDF(incomingDirection, frame.ToLocal(outgoingDirection));
+                        /*if (pdf + pdfOther == 0 || std::isnan(pdf + pdfOther))
+                        {
+                            printf("ASD1");
+                            throw std::exception("SOme");
+                        }*/
                         weightFactorMIS = pdf / (pdf + pdfOther);
 
                         //printf("%f %f %f\n", pdf, pdfOther, weightFactorMIS);
@@ -148,7 +153,19 @@ public:
                         if (pdf == 1.f) {
                             weightFactorMIS = 1.f;
                         }
+                        /*if (pdf == 0 || std::isnan(pdf))
+                        {
+                            printf("ASD3");
+                            throw std::exception("SOme2");
+                        }*/
 
+                        /*Vec3f val = throughput * intensity * mat.EvaluateBRDF(frame.ToLocal(outgoingDirection), incomingDirection) * cosTheta * weightFactorMIS / pdf;
+                        Vec3f valN = throughput * intensity * mat.EvaluateBRDF(frame.ToLocal(outgoingDirection), incomingDirection) * cosTheta / pdf;
+                        if (std::isnan(val.x) || std::isnan(val.y)|| std::isnan(val.z)) {
+                            printf("ASD | %f %f %f %f\n", pdf, pdfOther, lightDistance, Dot(light->Normal(), outgoingDirection));
+                            printf("ASD | %f %f %f %f", valN.x, valN.y, valN.z, weightFactorMIS);
+                            throw std::exception("SOme3");
+                        }*/
                         accumulation += throughput * intensity * mat.EvaluateBRDF(frame.ToLocal(outgoingDirection), incomingDirection) * cosTheta * weightFactorMIS / pdf;
                     }
                 }

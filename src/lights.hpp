@@ -77,10 +77,16 @@ public:
         float distanceSquared = outgoingDirection.LenSqr();
         float cos = (Dot(Normalize(Cross(e2, e1)), Normalize(outgoingDirection)));
 
-        if (cos >= 0) {
+        if (cos == 0) {
+            // TODO: What to do with PDF = 0?
+            return { samplePoint, mRadiance, 1.f};
+        }
+
+        if (cos > 0) {
             return { samplePoint, mRadiance, (mInvArea * distanceSquared) / cos };
         }
-        else {
+        else 
+        {
             return { samplePoint, 0.f , (mInvArea * distanceSquared) / cos };
         }
     }
